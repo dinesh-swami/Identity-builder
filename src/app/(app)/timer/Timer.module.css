@@ -1,0 +1,169 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.titleGroup h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.titleGroup p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.timerCard {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 24px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+}
+
+.timerCard.immersive {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background-color: var(--bg-primary);
+  border-radius: 0;
+  padding: 60px 24px;
+  justify-content: center;
+}
+
+.timerDisplay {
+  font-size: 5.5rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--text-main);
+  letter-spacing: -0.04em;
+  text-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+  line-height: 1;
+}
+
+.breakDisplay {
+  color: #fbbf24;
+  text-shadow: 0 0 30px rgba(245, 158, 11, 0.3);
+}
+
+.linkedTaskBanner {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.emergencyBreakAlert {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  font-size: 0.85rem;
+  color: #fde68a;
+  max-width: 520px;
+  line-height: 1.4;
+}
+
+.dangerAlert {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  font-size: 0.85rem;
+  color: #fca5a5;
+  max-width: 520px;
+}
+
+.timerControls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 600px;
+  margin: 12px 0;
+}
+
+.presetBtn {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 14px 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.presetBtn:hover {
+  border-color: var(--accent-primary);
+  background-color: rgba(99, 102, 241, 0.12);
+  transform: translateY(-2px);
+}
+
+.presetBtn.selected {
+  border-color: var(--accent-primary);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(67, 56, 202, 0.25));
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.presetLabel {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.todaySessionsCard {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .timerDisplay {
+    font-size: 3.5rem;
+  }
+}

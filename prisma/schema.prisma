@@ -1,0 +1,301 @@
+// This is your Prisma schema file for Indeity — Goal Achiever
+// Personal Life Tracking, Goal Achievement & Execution OS
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum GoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum MilestoneType {
+  MONTHLY
+  WEEKLY
+}
+
+enum MilestoneStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum SessionStatus {
+  PENDING
+  ACTIVE
+  ON_BREAK
+  COMPLETED
+  RESET
+  ABANDONED
+}
+
+enum HistoryChangeType {
+  CREATED
+  STATUS_CHANGED
+  RESCHEDULED
+  PRIORITY_CHANGED
+  DELAY_REASON_ADDED
+  WEIGHT_CHANGED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  settings     UserSettings?
+  goals        Goal[]
+  tasks        Task[]
+  focusSessions FocusSession[]
+  affirmations Affirmation[]
+  streakRecord StreakRecord?
+  dailyReviews DailyReview[]
+  scheduleLogs ScheduleLog[]
+
+  @@map("users")
+}
+
+model UserSettings {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  dailyTargetMinutes Int      @default(480) // 8 hours default
+  timezone           String   @default("Asia/Kolkata")
+  targetSleepTime    String   @default("23:00") // HH:mm
+  targetWakeTime     String   @default("07:00") // HH:mm
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model Goal {
+  id                 String       @id @default(cuid())
+  userId             String
+  title              String
+  description        String?
+  priority           Priority     @default(HIGH)
+  status             GoalStatus   @default(IN_PROGRESS)
+  startDate          DateTime
+  originalTargetDate DateTime
+  currentTargetDate  DateTime
+  completedAt        DateTime?
+  completionCriteria String?
+  notes              String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestones         Milestone[]
+  tasks              Task[]
+  focusSessions      FocusSession[]
+
+  @@index([userId, status])
+  @@map("goals")
+}
+
+model Milestone {
+  id                 String          @id @default(cuid())
+  goalId             String
+  parentId           String?         // For Weekly milestones pointing to Monthly milestone
+  type               MilestoneType
+  title              String
+  description        String?
+  status             MilestoneStatus @default(IN_PROGRESS)
+  originalStartDate  DateTime
+  originalEndDate    DateTime
+  currentStartDate   DateTime
+  currentEndDate     DateTime
+  completedAt        DateTime?
+  weight             Float           @default(1.0)
+  completionCriteria String?
+  delayReason        String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  goal               Goal            @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  parent             Milestone?      @relation("MilestoneHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children           Milestone[]     @relation("MilestoneHierarchy")
+  tasks              Task[]
+  focusSessions      FocusSession[]
+
+  @@index([goalId, type])
+  @@index([parentId])
+  @@map("milestones")
+}
+
+model Task {
+  id                  String             @id @default(cuid())
+  userId              String
+  goalId              String?
+  milestoneId         String?            // Linked weekly milestone
+  title               String
+  description         String?
+  priority            Priority           @default(MEDIUM)
+  status              TaskStatus         @default(TODO)
+  weight              Float              @default(1.0)
+  assignedDate        DateTime           // Scheduled calendar day
+  dueTime             String?            // e.g. "17:00"
+  originalPlannedDate DateTime
+  currentPlannedDate  DateTime
+  estimatedMinutes    Int                @default(30)
+  actualMinutes       Int                @default(0)
+  completedAt         DateTime?
+  delayReason         String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal                Goal?              @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  milestone           Milestone?         @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  history             PlanChangeEvent[]
+  focusSessions       FocusSession[]
+
+  @@index([userId, assignedDate, status])
+  @@index([milestoneId])
+  @@map("tasks")
+}
+
+model PlanChangeEvent {
+  id          String            @id @default(cuid())
+  taskId      String
+  changeType  HistoryChangeType
+  oldValue    String?
+  newValue    String?
+  reason      String?
+  recordedAt  DateTime          @default(now())
+
+  task        Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("plan_change_events")
+}
+
+model FocusSession {
+  id                   String        @id @default(cuid())
+  userId               String
+  goalId               String?
+  milestoneId          String?
+  taskId               String?
+  targetDurationMinutes Int          // Selected focus block length in minutes
+  status               SessionStatus @default(ACTIVE)
+  startedAt            DateTime      @default(now())
+  completedAt          DateTime?
+  breakStartedAt       DateTime?
+  breakDurationSeconds Int           @default(0)
+  emergencyBreakUsed   Boolean       @default(false)
+  creditedMinutes      Int           @default(0)
+  resetReason          String?
+  calendarDate         String        // YYYY-MM-DD in user's timezone
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal                 Goal?         @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  milestone            Milestone?    @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  task                 Task?         @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([userId, calendarDate, status])
+  @@map("focus_sessions")
+}
+
+model Affirmation {
+  id           String   @id @default(cuid())
+  userId       String
+  text         String
+  wordCount    Int
+  charCount    Int
+  calendarDate String   // YYYY-MM-DD in user's timezone
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, calendarDate])
+  @@index([userId, calendarDate])
+  @@map("affirmations")
+}
+
+model StreakRecord {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  currentStreak      Int      @default(0)
+  longestStreak      Int      @default(0)
+  totalDaysCompleted Int      @default(0)
+  lastCompletedDate  String?  // YYYY-MM-DD
+  updatedAt          DateTime @updatedAt
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("streak_records")
+}
+
+model DailyReview {
+  id               String   @id @default(cuid())
+  userId           String
+  calendarDate     String   // YYYY-MM-DD
+  completedSummary String
+  failedSummary    String?
+  failureReason    String?
+  carryForwardPlan String?
+  tomorrowChanges  String?
+  score            Int      @default(7) // 1-10 rating
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, calendarDate])
+  @@index([userId, calendarDate])
+  @@map("daily_reviews")
+}
+
+model ScheduleLog {
+  id                   String   @id @default(cuid())
+  userId               String
+  calendarDate         String   // YYYY-MM-DD
+  targetSleepTime      String   // HH:mm
+  targetWakeTime       String   // HH:mm
+  actualSleepTime      String   // HH:mm
+  actualWakeTime       String   // HH:mm
+  sleepDurationMinutes Int
+  deviationMinutes     Int
+  metTarget            Boolean  @default(false)
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, calendarDate])
+  @@index([userId, calendarDate])
+  @@map("schedule_logs")
+}
